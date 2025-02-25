@@ -26,6 +26,7 @@ import SaveCar from './Pages/Car/SaveCar';
 import ListCar from './Pages/Car/ListCar';
 import Login from './Pages/Auth/Login';
 import { ToastContainer } from 'react-toastify';
+import Profile from './Pages/Auth/Profile';
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -53,6 +54,7 @@ function App() {
 
           {/* Auth  */}
           <Route path="/" element={<Login />} />
+          <Route path="/profile" element={<Profile />} />
           {/* Banner  */}
           <Route path="/banners/add" element={<AddBanner />} />
           <Route path="/banners/list" element={<ListBanner />} />

@@ -1,29 +1,52 @@
 import { useForm } from 'react-hook-form';
 import { useState } from 'react';
 import { useAPP } from '../../contexts/Appcontext';
+import { toast } from 'react-toastify';
+import { BeatLoader } from 'react-spinners';
+import { useLocation } from 'react-router-dom';
 
-const CityFrom = () => {
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm();
-  const {theme}=useAPP();
+const CityForm = () => {
+  const { register, handleSubmit, reset, formState: { errors } } = useForm();
+  const { theme, saveData } = useAPP();
+  const [loading, setLoading] = useState(false);
+
+  // Extract the id from navigation state (ensure you pass it as state when navigating)
+  const location = useLocation();
+  const { id } = location.state || {}; 
+
+  // const id = 1;
 
   const onSubmit = (data) => {    
-    console.log("Form Data is :", data);
+    setLoading(true);
+    saveData(data, 'city',id)
+      .then((res) => {
+        if (res.success) {
+          toast.success(res.message);
+          reset();
+        } else {
+          toast.error(res.message);
+        }
+      })
+      .catch((err) => {
+        console.error("Error :", err);
+        toast.error(err.response?.data?.message || "Error saving City");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   };
 
-  
   const formBg = theme === 'dark' ? "dark-bg" : "bg-white";
   const labelColor = theme === 'dark' ? "text-gray-300" : "text-gray-700";
   const inputBG = theme === 'dark' ? "main-dark" : "bg-white";
-
 
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
       className={`${formBg} w-full py-10 rounded-2xl shadow-sm`}
     >
-      {/* Banner Image & Status Section */}
       <div className="px-10">
-        {/* Banner Image */}
+        {/* City Name */}
         <div className="mb-6">
           <label className={`block text-sm font-medium ${labelColor} mb-2`}>
             City Name
@@ -39,14 +62,14 @@ const CityFrom = () => {
           )}
         </div>
 
-        {/* Status Dropdown */}
+        {/* City Status */}
         <div className="mb-6">
-          <label className={`${labelColor} block text-sm font-medium  mb-2`}>
+          <label className={`${labelColor} block text-sm font-medium mb-2`}>
             City Status
           </label>
           <select
             {...register('status', { required: "Please select a status" })}
-            className={`w-full p-3 border border-gray-200 rounded-md text-sm text-[#212529] cursor-pointer  ${inputBG}`}
+            className={`w-full p-3 border border-gray-200 rounded-md text-sm text-[#212529] cursor-pointer ${inputBG}`}
           >
             <option value="">Select Status</option>
             <option value="publish">publish</option>
@@ -58,7 +81,7 @@ const CityFrom = () => {
         </div>
       </div>
 
-      {/* Divider with extra spacing */}
+      {/* Divider */}
       <div className="mt-16">
         <hr />
       </div>
@@ -67,14 +90,15 @@ const CityFrom = () => {
       <div className="px-10 mt-8">
         <button
           type="submit"
+          disabled={loading}
           className="bg-[#7B2BFF] text-white py-2 px-8 rounded-full 
-                     hover:bg-purple-700 transition-colors"
+                     hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Save City
+          {loading ? <BeatLoader color="white" /> : "Save City"}
         </button>
       </div>
     </form>
   );
 };
 
-export default CityFrom;
+export default CityForm;

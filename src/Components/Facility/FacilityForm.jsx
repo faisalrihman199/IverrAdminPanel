@@ -1,23 +1,48 @@
 import { useForm } from 'react-hook-form';
 import { useState } from 'react';
 import { useAPP } from '../../contexts/Appcontext';
+import { toast } from 'react-toastify';
+import { BeatLoader } from 'react-spinners';
+import { useLocation } from 'react-router-dom';
 
 const FacilityForm = () => {
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm();
+  const { register, handleSubmit, reset, formState: { errors } } = useForm();
+  const { theme, saveData } = useAPP();
+  const [loading, setLoading] = useState(false);
   const [fileName, setFileName] = useState('');
-  const {theme}=useAPP();
+
+  // Extract the id from the navigation state (if provided)
+  const { state } = useLocation();
+  const { id } = state || {};
 
   const onSubmit = (data) => {    
     const formData = new FormData();
     for (const key in data) {
-      if (key=='image'){
+      if (key === 'image') {
         formData.append(key, data[key][0]);
-        continue;
-      }  
-      formData.append(key, data[key]);
+      } else {
+        formData.append(key, data[key]);
+      }
     }
-    console.log("Form Data is :", Object.fromEntries(formData));
     
+    setLoading(true);
+    // Call saveData with formData, endpoint "facility", and the optional id
+    saveData(formData, 'facility', id)
+      .then((res) => {
+        if (res.success) {
+          toast.success(res.message);
+          reset();
+        } else {
+          toast.error(res.message);
+        }
+      })
+      .catch((err) => {
+        console.error("Error:", err);
+        toast.error(err.response?.data?.message || "Error saving Facility");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   };
 
   const handleFileChange = (e) => {
@@ -26,36 +51,37 @@ const FacilityForm = () => {
       setFileName(file.name);
     }
   };
+
   const formBg = theme === 'dark' ? "dark-bg" : "bg-white";
   const labelColor = theme === 'dark' ? "text-gray-300" : "text-gray-700";
   const inputBG = theme === 'dark' ? "main-dark" : "bg-white";
-
 
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
       className={`${formBg} w-full py-10 rounded-2xl shadow-sm`}
     >
-      {/* Car Type Image & Status Section */}
       <div className="px-10">
-      <div className="mb-6">
+        {/* Facility Name */}
+        <div className="mb-6">
           <label className={`block text-sm font-medium ${labelColor} mb-2`}>
             Facility Name
           </label>
           <input
             type="text"
-            {...register('title', { required: "Car Title is required" })}
+            {...register('name', { required: "Facility Name is required" })}
             className={`w-full p-3 border border-gray-200 rounded-md text-sm text-[#212529] ${inputBG} focus:outline-none focus:ring-1 focus:ring-purple-500`}
-            placeholder="Enter Title"
+            placeholder="Enter Facility Name"
           />
           {errors.title && (
             <p className="mt-1 text-sm text-red-500">{errors.title.message}</p>
           )}
         </div>
-        {/* Car Type Image Image */}
+
+        {/* Facility Image */}
         <div className="mb-6">
           <label className={`block text-sm font-medium ${labelColor} mb-2`}>
-          Facility Image
+            Facility Image
           </label>
           <label htmlFor="file-input-medium" className="sr-only">
             Choose file
@@ -64,7 +90,6 @@ const FacilityForm = () => {
             type="file"
             name="file-input-medium"
             accept="image/*"
-
             id="file-input-medium"
             onChange={handleFileChange}
             {...register('image', { required: "Image is required" })}
@@ -77,14 +102,14 @@ const FacilityForm = () => {
           )}
         </div>
 
-        {/* Status Dropdown */}
+        {/* Facility Status */}
         <div className="mb-6">
-          <label className={`${labelColor} block text-sm font-medium  mb-2`}>
-          Facility Status
+          <label className={`${labelColor} block text-sm font-medium mb-2`}>
+            Facility Status
           </label>
           <select
             {...register('status', { required: "Please select a status" })}
-            className={`w-full p-3 border border-gray-200 rounded-md text-sm text-[#212529] cursor-pointer  ${inputBG}`}
+            className={`w-full p-3 border border-gray-200 rounded-md text-sm text-[#212529] cursor-pointer ${inputBG}`}
           >
             <option value="">Select Status</option>
             <option value="publish">publish</option>
@@ -96,7 +121,7 @@ const FacilityForm = () => {
         </div>
       </div>
 
-      {/* Divider with extra spacing */}
+      {/* Divider */}
       <div className="mt-16">
         <hr />
       </div>
@@ -105,10 +130,11 @@ const FacilityForm = () => {
       <div className="px-10 mt-8">
         <button
           type="submit"
+          disabled={loading}
           className="bg-[#7B2BFF] text-white py-2 px-8 rounded-full 
-                     hover:bg-purple-700 transition-colors"
+                     hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Save Car Brand
+          {loading ? <BeatLoader color="white" /> : "Save Facility"}
         </button>
       </div>
     </form>

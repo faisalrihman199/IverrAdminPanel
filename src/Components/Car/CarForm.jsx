@@ -3,36 +3,79 @@ import { useEffect, useState } from "react";
 import { useAPP } from "../../contexts/Appcontext";
 import { FaCarAlt } from "react-icons/fa";
 import CarLocationForm from "./CarLocationForm";
+import FacilitiesMultiSelect from "./FacilitiesMultiSelect"; // Import the multi-select component
+import { toast } from "react-toastify";
+import { BeatLoader } from "react-spinners";
+import { useLocation } from "react-router-dom";
 
 const CarForm = () => {
   const {
     register,
     handleSubmit,
     setValue,
+    reset,
     formState: { errors },
   } = useForm();
   const [fileName, setFileName] = useState("");
-  const { theme } = useAPP();
-  const [location,setLocation]=useState({latitude:'', longitude:''});
-  useEffect(()=>{
-    setValue('latitude', location.latitude);
-    setValue('longitude', location.longitude);
-  },[location])
+  const [loading, setLoading] = useState(false);
+  const { theme, getData, saveData } = useAPP();
+  const { state } = useLocation();
+  const { id } = state || {};
+
+  const [location, setLocation] = useState({ latitude: "", longitude: "" });
+  const [options, setOptions] = useState({
+    cities: [],
+    carTypes: [],
+    carBrands: [],
+    facilities: [],
+  });
+
+  useEffect(() => {
+    getData("car/options")
+      .then((res) => {
+        console.log("Response :", res.options);
+        setOptions(res.options);
+      })
+      .catch((err) => {
+        console.log("Error :", err);
+      });
+  }, [getData]);
+
+  useEffect(() => {
+    setValue("latitude", location.latitude);
+    setValue("longitude", location.longitude);
+  }, [location, setValue]);
+
   const onSubmit = (data) => {
+    data.facilities=JSON.stringify(data.facilities)
+    
     const formData = new FormData();
-    // Move file into FormData
-    if (data.image && data.image[0]) {
-      formData.append("image", data.image[0]);
-    }
-    // Append all other fields
     for (const key in data) {
-      if (key !== "image") {
+      if (key === "image") {
+        // Append the first selected file for "image"
+        formData.append('images', data[key][0]);
+      } else {
         formData.append(key, data[key]);
       }
     }
-    // Debug
-    console.log("Car Form Data:", Object.fromEntries(formData));
-    // TODO: Send `formData` to your API endpoint here
+    setLoading(true);
+    saveData(formData, "car", id)
+      .then((res) => {
+        if (res.success) {
+          toast.success(res.message);
+          reset();
+          setLocation({ latitude: "", longitude: "" });
+        } else {
+          toast.error(res.message);
+        }
+      })
+      .catch((err) => {
+        console.error("Error:", err);
+        toast.error(err.response?.data?.message || "Error saving car");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   };
 
   const handleFileChange = (e) => {
@@ -42,12 +85,10 @@ const CarForm = () => {
     }
   };
 
-  // Theming (optional)
-  const formBg = theme === 'dark' ? "dark-bg" : "bg-white";
-  const labelColor = theme === 'dark' ? "text-gray-300" : "text-gray-700";
-  const inputBG = theme === 'dark' ? "main-dark" : "bg-white";
+  const formBg = theme === "dark" ? "dark-bg" : "bg-white";
+  const labelColor = theme === "dark" ? "text-gray-300" : "text-gray-700";
+  const inputBG = theme === "dark" ? "main-dark" : "bg-white";
 
-  // A helper to render the red asterisk + label
   const RequiredLabel = ({ children }) => (
     <label className={`block text-sm font-medium ${labelColor} mb-2`}>
       <span className="text-red-500">*</span> {children}
@@ -65,10 +106,8 @@ const CarForm = () => {
       <div className="my-6">
         <hr />
       </div>
-
-      {/* Row 1 => name, number, image, (empty) */}
+      {/* Row 1: Car Name, Car Number, Car Image, (empty) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Car Name => name */}
         <div>
           <RequiredLabel>Car Name</RequiredLabel>
           <input
@@ -80,8 +119,6 @@ const CarForm = () => {
             <p className="mt-1 text-sm text-red-500">{errors.name.message}</p>
           )}
         </div>
-
-        {/* Car Number => number */}
         <div>
           <RequiredLabel>Car Number</RequiredLabel>
           <input
@@ -93,12 +130,11 @@ const CarForm = () => {
             <p className="mt-1 text-sm text-red-500">{errors.number.message}</p>
           )}
         </div>
-
-        {/* Car Image => image */}
-        <div className="sm:col-span-1 md:col-span-2" >
-          <RequiredLabel>Car Image</RequiredLabel>
+        <div className="sm:col-span-1 md:col-span-2">
+          <RequiredLabel>Car Images</RequiredLabel>
           <input
             type="file"
+            multiple
             accept="image/*"
             {...register("image", { required: "Car Image is required" })}
             onChange={handleFileChange}
@@ -107,18 +143,12 @@ const CarForm = () => {
           {errors.image && (
             <p className="mt-1 text-sm text-red-500">{errors.image.message}</p>
           )}
-          {fileName && (
-            <p className="mt-1 text-sm text-gray-500">Selected: {fileName}</p>
-          )}
+          
         </div>
-
-        {/* Empty Column */}
         <div />
       </div>
-
-      {/* Row 2 => rating, seat, driverName, driverPhone */}
+      {/* Row 2: Rating, Total Seat, Driver Name, Driver Phone */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-        {/* Car Rating => rating */}
         <div>
           <RequiredLabel>Car Rating</RequiredLabel>
           <input
@@ -131,8 +161,6 @@ const CarForm = () => {
             <p className="mt-1 text-sm text-red-500">{errors.rating.message}</p>
           )}
         </div>
-
-        {/* Total Seat => seat */}
         <div>
           <RequiredLabel>Total Seat</RequiredLabel>
           <input
@@ -144,8 +172,6 @@ const CarForm = () => {
             <p className="mt-1 text-sm text-red-500">{errors.seat.message}</p>
           )}
         </div>
-
-        {/* Driver Name => driverName */}
         <div>
           <RequiredLabel>Driver Name</RequiredLabel>
           <input
@@ -154,33 +180,23 @@ const CarForm = () => {
             className={`w-full p-3 border border-gray-300 rounded-lg text-sm ${inputBG} focus:outline-none`}
           />
           {errors.driverName && (
-            <p className="mt-1 text-sm text-red-500">
-              {errors.driverName.message}
-            </p>
+            <p className="mt-1 text-sm text-red-500">{errors.driverName.message}</p>
           )}
         </div>
-
-        {/* Driver Phone => driverPhone */}
         <div>
           <RequiredLabel>Driver Phone</RequiredLabel>
           <input
             type="text"
-            {...register("driverPhone", {
-              required: "Driver Phone is required",
-            })}
+            {...register("driverPhone", { required: "Driver Phone is required" })}
             className={`w-full p-3 border border-gray-300 rounded-lg text-sm ${inputBG} focus:outline-none`}
           />
           {errors.driverPhone && (
-            <p className="mt-1 text-sm text-red-500">
-              {errors.driverPhone.message}
-            </p>
+            <p className="mt-1 text-sm text-red-500">{errors.driverPhone.message}</p>
           )}
         </div>
       </div>
-
-      {/* Row 3 => AC, gearSystem, facility, carTypeId */}
+      {/* Row 3: AC, Gear System, Facilities Multi-select, Car Type */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-        {/* Car AC => AC (Yes/No) */}
         <div>
           <RequiredLabel>Car AC</RequiredLabel>
           <select
@@ -195,8 +211,6 @@ const CarForm = () => {
             <p className="mt-1 text-sm text-red-500">{errors.AC.message}</p>
           )}
         </div>
-
-        {/* Gear System => gearSystem */}
         <div>
           <RequiredLabel>Gear System</RequiredLabel>
           <select
@@ -208,30 +222,21 @@ const CarForm = () => {
             <option value="manual">Manual</option>
           </select>
           {errors.gearSystem && (
-            <p className="mt-1 text-sm text-red-500">
-              {errors.gearSystem.message}
-            </p>
+            <p className="mt-1 text-sm text-red-500">{errors.gearSystem.message}</p>
           )}
         </div>
-
-        {/* Car Facility => facility */}
+        {/* Facilities MultiSelect */}
         <div>
-          <RequiredLabel>Car Facility</RequiredLabel>
-          <select
-            {...register("facility", { required: "Car Facility is required" })}
-            className={`w-full p-3 border border-gray-300 rounded-lg text-sm ${inputBG} cursor-pointer`}
-          >
-            <option value="">Choose Facility</option>
-            <option value="basic">Basic</option>
-            <option value="premium">Premium</option>
-            <option value="deluxe">Deluxe</option>
-          </select>
-          {errors.facility && (
-            <p className="mt-1 text-sm text-red-500">{errors.facility.message}</p>
-          )}
+          <FacilitiesMultiSelect
+            options={options.facilities}
+            RequiredLabel={RequiredLabel}
+            setValue={setValue}
+            register={register}
+            theme={theme}
+            remove={loading}
+            errors={errors}
+          />
         </div>
-
-        {/* Car Type => carTypeId */}
         <div>
           <RequiredLabel>Car Type</RequiredLabel>
           <select
@@ -239,22 +244,20 @@ const CarForm = () => {
             className={`w-full p-3 border border-gray-300 rounded-lg text-sm ${inputBG} cursor-pointer`}
           >
             <option value="">Select Car Type</option>
-            <option value="1">Sedan</option>
-            <option value="2">SUV</option>
-            <option value="3">Hatchback</option>
-            <option value="4">Luxury</option>
+            {options.carTypes &&
+              options.carTypes.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.title}
+                </option>
+              ))}
           </select>
           {errors.carTypeId && (
-            <p className="mt-1 text-sm text-red-500">
-              {errors.carTypeId.message}
-            </p>
+            <p className="mt-1 text-sm text-red-500">{errors.carTypeId.message}</p>
           )}
         </div>
       </div>
-
-      {/* Row 4 => carBrandId, carCityId, priceType, fuelType */}
+      {/* Row 4: Car Brand, Car City, Price Type, Fuel Type */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-        {/* Car Brand => carBrandId */}
         <div>
           <RequiredLabel>Car Brand</RequiredLabel>
           <select
@@ -262,41 +265,35 @@ const CarForm = () => {
             className={`w-full p-3 border border-gray-300 rounded-lg text-sm ${inputBG} cursor-pointer`}
           >
             <option value="">Select Brand</option>
-            <option value="1">Toyota</option>
-            <option value="2">Honda</option>
-            <option value="3">BMW</option>
-            <option value="4">Ford</option>
+            {options.carBrands &&
+              options.carBrands.map((brand) => (
+                <option key={brand.id} value={brand.id}>
+                  {brand.title}
+                </option>
+              ))}
           </select>
           {errors.carBrandId && (
-            <p className="mt-1 text-sm text-red-500">
-              {errors.carBrandId.message}
-            </p>
+            <p className="mt-1 text-sm text-red-500">{errors.carBrandId.message}</p>
           )}
         </div>
-
-        {/* Car City => carCityId */}
         <div>
           <RequiredLabel>Car City</RequiredLabel>
           <select
-            {...register("carCityId", {
-              required: "Available Car City is required",
-            })}
+            {...register("carCityId", { required: "Car City is required" })}
             className={`w-full p-3 border border-gray-300 rounded-lg text-sm ${inputBG} cursor-pointer`}
           >
             <option value="">Select City</option>
-            <option value="1">New York</option>
-            <option value="2">Los Angeles</option>
-            <option value="3">Chicago</option>
-            <option value="4">Houston</option>
+            {options.cities &&
+              options.cities.map((city) => (
+                <option key={city.id} value={city.id}>
+                  {city.name}
+                </option>
+              ))}
           </select>
           {errors.carCityId && (
-            <p className="mt-1 text-sm text-red-500">
-              {errors.carCityId.message}
-            </p>
+            <p className="mt-1 text-sm text-red-500">{errors.carCityId.message}</p>
           )}
         </div>
-
-        {/* Car Price Type => priceType (daily/hourly) */}
         <div>
           <RequiredLabel>Car Price Type</RequiredLabel>
           <select
@@ -308,13 +305,9 @@ const CarForm = () => {
             <option value="hourly">Hourly</option>
           </select>
           {errors.priceType && (
-            <p className="mt-1 text-sm text-red-500">
-              {errors.priceType.message}
-            </p>
+            <p className="mt-1 text-sm text-red-500">{errors.priceType.message}</p>
           )}
         </div>
-
-        {/* Car Fuel Type => fuelType */}
         <div>
           <RequiredLabel>Car Fuel Type</RequiredLabel>
           <select
@@ -328,16 +321,12 @@ const CarForm = () => {
             <option value="electric">Electric</option>
           </select>
           {errors.fuelType && (
-            <p className="mt-1 text-sm text-red-500">
-              {errors.fuelType.message}
-            </p>
+            <p className="mt-1 text-sm text-red-500">{errors.fuelType.message}</p>
           )}
         </div>
       </div>
-
-      {/* Row 5 => rentWithDriver, rentDriverLess, engineHP, drivenKM */}
+      {/* Row 5: Rent with Driver, Rent without Driver, Engine HP, Driven KM */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-        {/* Car Rent Price (With Driver) => rentWithDriver */}
         <div>
           <RequiredLabel>Car Rent Price (With Driver)</RequiredLabel>
           <input
@@ -354,8 +343,6 @@ const CarForm = () => {
             </p>
           )}
         </div>
-
-        {/* Car Rent Price (Without Driver) => rentDriverLess */}
         <div>
           <RequiredLabel>Car Rent Price (Without Driver)</RequiredLabel>
           <input
@@ -372,8 +359,6 @@ const CarForm = () => {
             </p>
           )}
         </div>
-
-        {/* Car Engine HP => engineHP */}
         <div>
           <RequiredLabel>Car Engine HP</RequiredLabel>
           <input
@@ -387,15 +372,11 @@ const CarForm = () => {
             </p>
           )}
         </div>
-
-        {/* Car Total Driven Km => drivenKM */}
         <div>
           <RequiredLabel>Car Total Driven Km</RequiredLabel>
           <input
             type="number"
-            {...register("drivenKM", {
-              required: "Total Driven Km is required",
-            })}
+            {...register("drivenKM", { required: "Total Driven Km is required" })}
             className={`w-full p-3 border border-gray-300 rounded-lg text-sm ${inputBG} focus:outline-none`}
           />
           {errors.drivenKM && (
@@ -405,13 +386,12 @@ const CarForm = () => {
           )}
         </div>
       </div>
+      {/* Row 6: Car Location */}
       <div className="mt-6">
-        <CarLocationForm setLoc={setLocation} theme={theme}  />
+        <CarLocationForm setLoc={setLocation} theme={theme} />
       </div>
-
-      {/* Row 6 => status, latitude, longitude, minHrsReq */}
+      {/* Row 7: Status, Latitude, Longitude, Minimum Hours */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-        {/* Car Status => status */}
         <div>
           <RequiredLabel>Car Status</RequiredLabel>
           <select
@@ -426,8 +406,6 @@ const CarForm = () => {
             <p className="mt-1 text-sm text-red-500">{errors.status.message}</p>
           )}
         </div>
-
-        {/* Car Latitude => latitude */}
         <div>
           <RequiredLabel>Car Latitude</RequiredLabel>
           <input
@@ -438,39 +416,27 @@ const CarForm = () => {
             className={`w-full p-3 border border-gray-300 rounded-lg text-sm ${inputBG} focus:outline-none`}
           />
           {errors.latitude && (
-            <p className="mt-1 text-sm text-red-500">
-              {errors.latitude.message}
-            </p>
+            <p className="mt-1 text-sm text-red-500">{errors.latitude.message}</p>
           )}
         </div>
-
-        {/* Car Longitude => longitude */}
         <div>
           <RequiredLabel>Car Longitude</RequiredLabel>
           <input
             type="text"
             readOnly
             value={location.longitude}
-            {...register("longitude", {
-              required: "Car Longitude is required",
-            })}
+            {...register("longitude", { required: "Car Longitude is required" })}
             className={`w-full p-3 border border-gray-300 rounded-lg text-sm ${inputBG} focus:outline-none`}
           />
           {errors.longitude && (
-            <p className="mt-1 text-sm text-red-500">
-              {errors.longitude.message}
-            </p>
+            <p className="mt-1 text-sm text-red-500">{errors.longitude.message}</p>
           )}
         </div>
-
-        {/* Car Minimum Hrs Required => minHrsReq */}
         <div>
           <RequiredLabel>Car Minimum Hrs Required</RequiredLabel>
           <input
             type="number"
-            {...register("minHrsReq", {
-              required: "Minimum Hours is required",
-            })}
+            {...register("minHrsReq", { required: "Minimum Hours is required" })}
             className={`w-full p-3 border border-gray-300 rounded-lg text-sm ${inputBG} focus:outline-none`}
           />
           {errors.minHrsReq && (
@@ -480,56 +446,41 @@ const CarForm = () => {
           )}
         </div>
       </div>
-
-      {/* Row 7 => description, pickupAddress */}
+      {/* Row 8: Description, Pickup Address */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-6">
-        {/* Car Description => description */}
         <div>
           <RequiredLabel>Car Description</RequiredLabel>
           <textarea
             rows="3"
-            {...register("description", {
-              required: "Description is required",
-            })}
+            {...register("description", { required: "Description is required" })}
             className={`w-full p-3 border border-gray-300 rounded-lg text-sm ${inputBG} focus:outline-none`}
           />
           {errors.description && (
-            <p className="mt-1 text-sm text-red-500">
-              {errors.description.message}
-            </p>
+            <p className="mt-1 text-sm text-red-500">{errors.description.message}</p>
           )}
         </div>
-
-        {/* Car Pickup Address => pickupAddress */}
         <div>
           <RequiredLabel>Car Pickup Address</RequiredLabel>
           <textarea
             rows="3"
-            {...register("pickupAddress", {
-              required: "Pickup Address is required",
-            })}
+            {...register("pickupAddress", { required: "Pickup Address is required" })}
             className={`w-full p-3 border border-gray-300 rounded-lg text-sm ${inputBG} focus:outline-none`}
           />
           {errors.pickupAddress && (
-            <p className="mt-1 text-sm text-red-500">
-              {errors.pickupAddress.message}
-            </p>
+            <p className="mt-1 text-sm text-red-500">{errors.pickupAddress.message}</p>
           )}
         </div>
       </div>
-
       <div className="mt-16">
         <hr />
       </div>
-
-      {/* Submit Button */}
       <div className="mt-8">
         <button
           type="submit"
-          className="bg-[#7B2BFF] text-white py-2 px-8 rounded-full 
-                     hover:bg-purple-700 transition-colors"
+          disabled={loading}
+          className="bg-[#7B2BFF] text-white py-2 px-8 rounded-full hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Add Car
+          {loading ? <BeatLoader color="white" /> : "Add Car"}
         </button>
       </div>
     </form>

@@ -1,12 +1,15 @@
 import { useForm } from 'react-hook-form';
 import { useState } from 'react';
 import { useAPP } from '../../contexts/Appcontext';
+import { toast } from 'react-toastify';
+import { BeatLoader } from 'react-spinners';
 
 const BannerForm = () => {
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm();
+  const { register, handleSubmit,reset, setValue, formState: { errors } } = useForm();
   const [fileName, setFileName] = useState('');
-  const {theme}=useAPP();
-
+  const {theme,saveData}=useAPP();
+  const [loading, setLoading] = useState(false);
+  const { id } = location.state || {}; 
   const onSubmit = (data) => {    
     const formData = new FormData();
     for (const key in data) {
@@ -16,8 +19,24 @@ const BannerForm = () => {
       }  
       formData.append(key, data[key]);
     }
-    console.log("Form Data is :", Object.fromEntries(formData));
-    
+    setLoading(true);
+    saveData(formData,'banner', id)
+    .then((res)=>{
+      if(res.success){
+        toast.success(res.message);
+        reset();
+      }
+      else{
+        toast.error(res.message);
+      }
+    })
+    .catch((err)=>{
+        console.log("Error :", err);
+        toast.error(err.response.data.message || "Error saving Banner")
+    })
+    .finally(()=>{
+      setLoading(false);
+    })
   };
 
   const handleFileChange = (e) => {
@@ -93,7 +112,7 @@ const BannerForm = () => {
           className="bg-[#7B2BFF] text-white py-2 px-8 rounded-full 
                      hover:bg-purple-700 transition-colors"
         >
-          Save Banner
+          {loading ?<BeatLoader color='white' />:'Save Banner'}
         </button>
       </div>
     </form>

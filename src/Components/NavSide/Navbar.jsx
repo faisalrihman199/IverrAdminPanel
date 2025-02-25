@@ -186,7 +186,7 @@ const Navbar = ({ toggleSidebar }) => {
                     >
                         <li className={`flex items-center px-4 ${profileMenuHover} cursor-pointer`}>
                             <FaUserCircle className="" />
-                            <Link to="#account" className={`block px-3 py-2 `}>
+                            <Link to="/profile" className={`block px-3 py-2 `}>
                                 Account
                             </Link>
                         </li>
