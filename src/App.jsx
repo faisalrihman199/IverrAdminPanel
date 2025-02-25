@@ -22,6 +22,10 @@ import Payment from './Pages/Payment/Payment';
 import Payout from './Pages/Payout/Payout';
 import SaveCoupon from './Pages/Coupon/SaveCoupon';
 import ListCoupon from './Pages/Coupon/ListCoupon';
+import SaveCar from './Pages/Car/SaveCar';
+import ListCar from './Pages/Car/ListCar';
+import Login from './Pages/Auth/Login';
+import { ToastContainer } from 'react-toastify';
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -45,7 +49,10 @@ function App() {
         <>
         
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/dashboard" element={<Home />} />
+
+          {/* Auth  */}
+          <Route path="/" element={<Login />} />
           {/* Banner  */}
           <Route path="/banners/add" element={<AddBanner />} />
           <Route path="/banners/list" element={<ListBanner />} />
@@ -57,6 +64,10 @@ function App() {
           {/* Car Type  */}
           <Route path="/car-types/add" element={<SaveCarType />} />
           <Route path="/car-types/list" element={<ListCarType />} />
+
+          {/* Car  */}
+          <Route path="/cars/add" element={<SaveCar />} />
+          <Route path="/cars/list" element={<ListCar />} />
 
           {/* Car Brand  */}
           <Route path="/car-brands/add" element={<SaveCarBrand />} />
@@ -82,6 +93,7 @@ function App() {
           <Route path="/payments" element={<Payment />} />
           <Route path="/payouts" element={<Payout />} />
         </Routes>
+        <ToastContainer />
 
         </>
       )}

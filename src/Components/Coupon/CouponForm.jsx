@@ -37,9 +37,9 @@ const CouponForm = () => {
     setValue("code", code);
   };
 
-  const formBg = theme === "dark" ? "bg-gray-900" : "bg-white";
-  const labelColor = theme === "dark" ? "text-gray-300" : "text-gray-700";
-  const inputBG = theme === "dark" ? "bg-gray-800 text-white" : "bg-white";
+  const formBg = theme === 'dark' ? "dark-bg" : "bg-white";
+  const labelColor = theme === 'dark' ? "text-gray-300" : "text-gray-700";
+  const inputBG = theme === 'dark' ? "main-dark" : "bg-white";
 
   return (
     <form

@@ -10,7 +10,14 @@ const APP_Provider = ({ children }) => {
   });
 
   const server = import.meta.env.VITE_APP_API_URL;
-  const [theme,setTheme]=useState(localStorage.getItem('themeColor') || 'light');
+  const getCurrentTheme = () =>
+    window.matchMedia &&
+    window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light';
+
+
+  const [theme,setTheme]=useState(localStorage.getItem('themeColor') || getCurrentTheme());
  
   console.log("Server is :", server);
   useEffect(()=>{
@@ -35,10 +42,19 @@ const APP_Provider = ({ children }) => {
       }
     };
   };
+  const Login=async(data)=>{
+      const response = await axios.post(`${server}/auth/login`, data);
+      return response.data;
+
+  }
+  
   
 
   const provider = {
-    theme,setTheme
+    //Theme 
+    theme,setTheme, 
+    //Auth
+    Login,user,setUser,
   };
 
   return (

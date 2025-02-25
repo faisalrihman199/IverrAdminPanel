@@ -45,7 +45,7 @@ export default function Sidebar({ isSidebarOpen, toggleSidebar }) {
     {
       label: 'Dashboard',
       icon: <BsFillGridFill size={20} />,
-      link: '/',
+      link: '/dashboard',
     },
     {
       label: 'Banner',
